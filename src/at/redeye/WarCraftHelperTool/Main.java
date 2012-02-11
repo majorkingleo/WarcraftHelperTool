@@ -30,6 +30,7 @@ public class Main extends BaseModuleLauncher
         root.updateDllCache();       
         */       
         
+        AppConfigDefinitions.registerDefinitions();
         FrameWorkConfigDefinitions.registerDefinitions();
 
         FrameWorkConfigDefinitions.LookAndFeel.value.loadFromString("Nimbus");

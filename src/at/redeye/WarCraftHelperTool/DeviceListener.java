@@ -4,12 +4,13 @@
  */
 package at.redeye.WarCraftHelperTool;
 
-import java.net.DatagramPacket;
-import java.net.DatagramSocket;
+import java.io.IOException;
+import java.net.*;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import org.apache.log4j.Logger;
 import org.jnetpcap.Pcap;
 import org.jnetpcap.PcapIf;
+import org.jnetpcap.PcapSockAddr;
 import org.jnetpcap.packet.PcapPacket;
 import org.jnetpcap.packet.PcapPacketHandler;
 import org.jnetpcap.protocol.lan.Ethernet;
@@ -31,6 +32,9 @@ public class DeviceListener extends Thread
     MainWin mainwin;
     
     int last_sent = 0;
+    int listenPort = 0;
+    
+    InetAddress broadcast_address;
     
     public DeviceListener(PcapIf device, final MainWin mainwin) {
         super(getName(device));
@@ -38,14 +42,26 @@ public class DeviceListener extends Thread
         this.mainwin = mainwin;
         this.device = device;
         
-        final Thread sender = this;
+       listenPort = Integer.valueOf(mainwin.getRoot().getSetup().getLocalConfig(AppConfigDefinitions.ListenPort));
+        
+       final Thread sender = this;
 
         jpacketHandler = new PcapPacketHandler<String>() {
 
             @Override
             public void nextPacket(PcapPacket packet, String user) {
                
-                Ethernet eth = packet.getHeader( new Ethernet());
+                Ethernet eth = null;
+                
+                try {
+                    eth = packet.getHeader( new Ethernet());
+                } catch( IndexOutOfBoundsException ex ) {
+                    logger.debug("unknown packet",ex);
+                    return;
+                }  
+                
+                if( eth == null )
+                    return;
                 
                 byte mac_dest[] = eth.destination();
                 
@@ -75,7 +91,7 @@ public class DeviceListener extends Thread
                     return;
                 }
                 
-                logger.debug(String.format("%s udp broadcst to port %d", user, udp.destination() ));
+                logger.debug(String.format("%s udp broadcst on port %d detected", user, udp.destination() ));
                 
                 mainwin.sendToOther(sender, packet);
                 
@@ -92,7 +108,62 @@ public class DeviceListener extends Thread
                 
             }
         };
+        
+        try {
+            
+            
+            byte netmask_bytes[] = device.getAddresses().get(0).getNetmask().getData();            
+            int netmask = (int) unsignedIntToLong(netmask_bytes);                        
+            
+            byte ip_bytes[] = device.getAddresses().get(0).getAddr().getData();           
+            int ip = (int) unsignedIntToLong(ip_bytes);                        
+            
+            // apply netmask
+            int broadcast_ip = ip | ( ~ netmask );
+            
+            // logger.debug(String.format("Netmask is: %x ip is: %x broadcast ip: %x", netmask, ip, broadcast_ip));            
+            
+            broadcast_address = Inet4Address.getByName(intToIp(broadcast_ip));           
+            logger.debug("Broadcast Address: " + broadcast_address.toString() + " for device address " + device.getAddresses().get(0).getAddr().toString());
+            
+        } catch( UnknownHostException ex ) {
+            logger.error(ex,ex);
+        }        
     }
+    
+    public static Long ipToInt(String addr) {
+
+        String[] addrArray = addr.split("\\.");
+
+        long num = 0;
+
+        for (int i = 0; i < addrArray.length; i++) {
+            int power = 3 - i;
+            num += ((Integer.parseInt(addrArray[i]) % 256 * Math.pow(256, power)));
+        }
+
+        return num;
+    }
+    
+    public static String intToIp(int i) {
+
+        return ((i >> 24) & 0xFF) + "."
+                + ((i >> 16) & 0xFF) + "."
+                + ((i >> 8) & 0xFF) + "."
+                + (i & 0xFF);
+    }
+    
+    public static long unsignedIntToLong(byte[] b) {
+        long l = 0;
+        l |= b[0] & 0xFF;
+        l <<= 8;
+        l |= b[1] & 0xFF;
+        l <<= 8;
+        l |= b[2] & 0xFF;
+        l <<= 8;
+        l |= b[3] & 0xFF;
+        return l;
+    } 
     
     @Override
     public void run()
@@ -108,12 +179,28 @@ public class DeviceListener extends Thread
             return;
         } 
         
-        while( !do_stop ) {
+        while( !do_stop ) {            
             pcap.loop(1, jpacketHandler, this.getName());
             
             PcapPacket send_packet =  to_send.poll();
             
             if( send_packet != null ) { 
+                
+                Udp sent_udp = send_packet.getHeader(new Udp());                    
+                byte data[] = sent_udp.getPayload();
+                DatagramPacket udp_packet = new DatagramPacket(data, data.length,broadcast_address, listenPort);    
+                
+                try {
+                    DatagramSocket dsocket = new DatagramSocket();
+                    dsocket.send(udp_packet);
+                    dsocket.close();
+                    last_sent++;
+                    mainwin.incSent(this);
+                } catch ( IOException ex ) {
+                    logger.error(ex);
+                }
+                
+                /*
                 byte bytes[] = send_packet.getByteArray(0, send_packet.size());  
                 last_sent++;
                 if( pcap.sendPacket(bytes) == 0 ) {
@@ -121,7 +208,8 @@ public class DeviceListener extends Thread
                     logger.debug(String.format("%s Sent", getName()));
                 } else {
                     logger.error(String.format("failed sending %s",send_packet.toString()));
-                }               
+                }                  
+                */
             }
         }
         
@@ -145,6 +233,7 @@ public class DeviceListener extends Thread
     public void send(PcapPacket packet)
     {        
         to_send.add(packet);  
+        pcap.breakloop();
     }
 
 }
