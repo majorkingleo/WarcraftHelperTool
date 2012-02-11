@@ -25,8 +25,10 @@ public class Main extends BaseModuleLauncher
     }
 
     public void run() {
+        /*
         root.addDllExtractorToCache(new JNetPcapDLL());
-        root.updateDllCache();
+        root.updateDllCache();       
+        */       
         
         FrameWorkConfigDefinitions.registerDefinitions();
 
@@ -40,7 +42,7 @@ public class Main extends BaseModuleLauncher
     
     @Override
     public String getVersion() {
-        return "0.1";
+        return Version.getVersion();
     }    
     
     public static void main( String args[]  )

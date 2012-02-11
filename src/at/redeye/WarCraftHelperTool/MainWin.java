@@ -9,9 +9,11 @@ import at.redeye.FrameWork.base.BaseModuleLauncher;
 import at.redeye.FrameWork.base.Root;
 import at.redeye.FrameWork.base.bindtypes.DBInteger;
 import at.redeye.FrameWork.base.tablemanipulator.TableManipulator;
+import at.redeye.Plugins.ShellExec.ShellExec;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Vector;
+import javax.swing.JOptionPane;
 import org.apache.log4j.PatternLayout;
 import org.jnetpcap.Pcap;
 import org.jnetpcap.PcapIf;
@@ -56,7 +58,19 @@ public class MainWin extends BaseDialog {
 
             @Override
             public void run() {
-                initDeviceList();
+                
+                try {
+                    initDeviceList();
+                } catch( UnsatisfiedLinkError ex ) {
+                    if( ex.toString().contains("dependent") ) {
+                        logger.error(ex,ex);
+                        JOptionPane.showMessageDialog(rootPane, "Please Install the WinPcap Library http://www.winpcap.org/install/default.htm");
+                        ShellExec exec = new ShellExec();
+                        exec.execute("http://www.winpcap.org/install/default.htm");
+                    } else {
+                        logger.error(ex,ex);
+                    }
+                }
             }
         });
     }
@@ -162,6 +176,13 @@ public class MainWin extends BaseDialog {
         jTable1 = new javax.swing.JTable();
         jScrollPane2 = new javax.swing.JScrollPane();
         jTextArea1 = new javax.swing.JTextArea();
+        jMenuBar1 = new javax.swing.JMenuBar();
+        jMenu1 = new javax.swing.JMenu();
+        jMenuItem1 = new javax.swing.JMenuItem();
+        jMenu2 = new javax.swing.JMenu();
+        jSeparator1 = new javax.swing.JPopupMenu.Separator();
+        jMAbout = new javax.swing.JMenuItem();
+        jMChangeLog = new javax.swing.JMenuItem();
 
         setDefaultCloseOperation(javax.swing.WindowConstants.DISPOSE_ON_CLOSE);
 
@@ -189,6 +210,41 @@ public class MainWin extends BaseDialog {
 
         jSplitPane1.setRightComponent(jScrollPane2);
 
+        jMenu1.setText("Programm");
+
+        jMenuItem1.setText("Beenden");
+        jMenuItem1.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                jMenuItem1ActionPerformed(evt);
+            }
+        });
+        jMenu1.add(jMenuItem1);
+
+        jMenuBar1.add(jMenu1);
+
+        jMenu2.setText("Info");
+        jMenu2.add(jSeparator1);
+
+        jMAbout.setText("Über");
+        jMAbout.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                jMAboutActionPerformed(evt);
+            }
+        });
+        jMenu2.add(jMAbout);
+
+        jMChangeLog.setText("Änderungsprotokoll");
+        jMChangeLog.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                jMChangeLogActionPerformed(evt);
+            }
+        });
+        jMenu2.add(jMChangeLog);
+
+        jMenuBar1.add(jMenu2);
+
+        setJMenuBar(jMenuBar1);
+
         javax.swing.GroupLayout layout = new javax.swing.GroupLayout(getContentPane());
         getContentPane().setLayout(layout);
         layout.setHorizontalGroup(
@@ -197,15 +253,37 @@ public class MainWin extends BaseDialog {
         );
         layout.setVerticalGroup(
             layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addComponent(jSplitPane1, javax.swing.GroupLayout.DEFAULT_SIZE, 343, Short.MAX_VALUE)
+            .addComponent(jSplitPane1, javax.swing.GroupLayout.DEFAULT_SIZE, 322, Short.MAX_VALUE)
         );
 
         pack();
     }// </editor-fold>//GEN-END:initComponents
+
+    private void jMAboutActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jMAboutActionPerformed
+        invokeDialogUnique(new About(root));
+    }//GEN-LAST:event_jMAboutActionPerformed
+
+    private void jMChangeLogActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jMChangeLogActionPerformed
+
+        invokeDialogUnique(new LocalHelpWin(root, "ChangeLog"));
+    }//GEN-LAST:event_jMChangeLogActionPerformed
+
+    private void jMenuItem1ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jMenuItem1ActionPerformed
+        
+        close();
+        
+    }//GEN-LAST:event_jMenuItem1ActionPerformed
     
     // Variables declaration - do not modify//GEN-BEGIN:variables
+    private javax.swing.JMenuItem jMAbout;
+    private javax.swing.JMenuItem jMChangeLog;
+    private javax.swing.JMenu jMenu1;
+    private javax.swing.JMenu jMenu2;
+    private javax.swing.JMenuBar jMenuBar1;
+    private javax.swing.JMenuItem jMenuItem1;
     private javax.swing.JScrollPane jScrollPane1;
     private javax.swing.JScrollPane jScrollPane2;
+    private javax.swing.JPopupMenu.Separator jSeparator1;
     private javax.swing.JSplitPane jSplitPane1;
     private javax.swing.JTable jTable1;
     private javax.swing.JTextArea jTextArea1;
