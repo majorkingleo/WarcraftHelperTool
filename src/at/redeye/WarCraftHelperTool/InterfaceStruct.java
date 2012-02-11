@@ -16,7 +16,7 @@ public class InterfaceStruct extends DBStrukt {
 
     DBString iface = new DBString("iface","Interface",25);
     DBInteger sent = new DBInteger("sent","Gesendet");
-    DBInteger recv = new DBInteger("rec","Empfangen");
+    DBInteger recv = new DBInteger("rec","Empfangen");    
     
     public InterfaceStruct()
     {

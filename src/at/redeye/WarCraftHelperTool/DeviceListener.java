@@ -7,6 +7,7 @@ package at.redeye.WarCraftHelperTool;
 import java.io.IOException;
 import java.net.*;
 import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.logging.Level;
 import org.apache.log4j.Logger;
 import org.jnetpcap.Pcap;
 import org.jnetpcap.PcapIf;
@@ -14,6 +15,7 @@ import org.jnetpcap.PcapSockAddr;
 import org.jnetpcap.packet.PcapPacket;
 import org.jnetpcap.packet.PcapPacketHandler;
 import org.jnetpcap.protocol.lan.Ethernet;
+import org.jnetpcap.protocol.network.Ip4;
 import org.jnetpcap.protocol.tcpip.Udp;
 
 /**
@@ -35,6 +37,7 @@ public class DeviceListener extends Thread
     int listenPort = 0;
     
     InetAddress broadcast_address;
+    InetAddress local_address;
     
     public DeviceListener(PcapIf device, final MainWin mainwin) {
         super(getName(device));
@@ -51,17 +54,19 @@ public class DeviceListener extends Thread
             @Override
             public void nextPacket(PcapPacket packet, String user) {
                
-                Ethernet eth = null;
+                Ethernet eth = null;                
+                Ip4 ipv4 = null;
                 
                 try {
                     eth = packet.getHeader( new Ethernet());
+                    ipv4 = packet.getHeader( new Ip4() );
                 } catch( IndexOutOfBoundsException ex ) {
                     logger.debug("unknown packet",ex);
                     return;
                 }  
                 
-                if( eth == null )
-                    return;
+                if( eth == null || ipv4 == null )
+                    return;                                
                 
                 byte mac_dest[] = eth.destination();
                 
@@ -72,6 +77,16 @@ public class DeviceListener extends Thread
                         return;
                 }
                 
+                byte ip_dest[] = ipv4.destination();
+                
+                // listen to broadcasts
+                for( int i = 0; i < ip_dest.length; i++ )
+                {
+                    if( ip_dest[i] != -1 )
+                        return;
+                }                
+                
+                
                 Udp udp = packet.getHeader( new Udp());
                 
                 if( udp == null )
@@ -80,7 +95,7 @@ public class DeviceListener extends Thread
                 if( udp.destination() != 6112 )
                     return;                                  
                              
-         
+/*                
                 if( last_sent > 0 ) {
                     last_sent -= 1;
                     
@@ -89,7 +104,8 @@ public class DeviceListener extends Thread
                     }
                     
                     return;
-                }
+                }                
+*/                
                 
                 logger.debug(String.format("%s udp broadcst on port %d detected", user, udp.destination() ));
                 
@@ -125,6 +141,8 @@ public class DeviceListener extends Thread
             
             broadcast_address = Inet4Address.getByName(intToIp(broadcast_ip));           
             logger.debug("Broadcast Address: " + broadcast_address.toString() + " for device address " + device.getAddresses().get(0).getAddr().toString());
+            
+            local_address = Inet4Address.getByAddress(device.getAddresses().get(0).getAddr().getData());
             
         } catch( UnknownHostException ex ) {
             logger.error(ex,ex);
@@ -180,16 +198,18 @@ public class DeviceListener extends Thread
         } 
         
         while( !do_stop ) {            
+            
             pcap.loop(1, jpacketHandler, this.getName());
             
             PcapPacket send_packet =  to_send.poll();
             
             if( send_packet != null ) { 
-                
+               
+                /*
                 Udp sent_udp = send_packet.getHeader(new Udp());                    
                 byte data[] = sent_udp.getPayload();
                 DatagramPacket udp_packet = new DatagramPacket(data, data.length,broadcast_address, listenPort);    
-                
+                               
                 try {
                     DatagramSocket dsocket = new DatagramSocket();
                     dsocket.send(udp_packet);
@@ -199,17 +219,44 @@ public class DeviceListener extends Thread
                 } catch ( IOException ex ) {
                     logger.error(ex);
                 }
-                
-                /*
-                byte bytes[] = send_packet.getByteArray(0, send_packet.size());  
-                last_sent++;
-                if( pcap.sendPacket(bytes) == 0 ) {
-                    mainwin.incSent(this);                    
-                    logger.debug(String.format("%s Sent", getName()));
-                } else {
-                    logger.error(String.format("failed sending %s",send_packet.toString()));
-                }                  
+                *
                 */
+                
+                try {
+                    Ethernet ether = send_packet.getHeader(new Ethernet());
+                    ether.source(device.getHardwareAddress());                    
+                    Ip4 ipv4 = send_packet.getHeader(new Ip4());
+                    ipv4.source(local_address.getAddress());
+                    ipv4.destination(broadcast_address.getAddress());
+                    ipv4.checksum(ipv4.calculateChecksum());
+                    ether.checksum(ether.calculateChecksum());
+                    
+                    byte bytes[] = send_packet.getByteArray(0, send_packet.size());
+                    
+                    if( pcap.sendPacket(bytes) == 0 ) {
+                        last_sent++;
+                        mainwin.incSent(this);                    
+                        // logger.debug(String.format("%s Sent", getName()));
+                    } else {
+                        logger.error(String.format("failed sending %s",send_packet.toString()));
+                    }                        
+                    
+                } catch (IOException ex) {
+                    logger.error(ex,ex);
+                    continue;
+                }                    
+                    
+                    /*
+                    byte bytes[] = send_packet.getByteArray(0, send_packet.size());  
+                    last_sent++;
+                    if( pcap.sendPacket(bytes) == 0 ) {
+                        mainwin.incSent(this);                    
+                        logger.debug(String.format("%s Sent", getName()));
+                    } else {
+                        logger.error(String.format("failed sending %s",send_packet.toString()));
+                    }                  
+                    */
+
             }
         }
         

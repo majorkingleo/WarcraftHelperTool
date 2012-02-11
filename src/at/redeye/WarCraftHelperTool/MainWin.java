@@ -134,7 +134,9 @@ public class MainWin extends BaseDialog {
     void sendToOther( Thread me, PcapPacket packet ) {
         for( int i = 0; i < listeners.size(); i++ ) {
             if( listeners.get(i) != me  ) {
-               listeners.get(i).send(packet);                              
+                
+    //           if( !listeners.get(i).device.getDescription().contains("Microsoft") ) 
+                    listeners.get(i).send(packet);                              
             } else {
                DBInteger in =  interfaces.get(i).recv;
                in.loadFromCopy(in.getValue()+1);
