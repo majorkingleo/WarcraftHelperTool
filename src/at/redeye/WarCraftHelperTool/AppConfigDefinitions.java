@@ -18,7 +18,7 @@ import at.redeye.FrameWork.base.prm.impl.PrmDefaultCheckSuite;
 public class AppConfigDefinitions extends BaseAppConfigDefinitions {
 
     public static DBConfig ListenPort = new DBConfig("ListenPort","6112","UDP Port der gebroadcastet werden soll", new PrmDefaultCheckSuite(PrmDefaultChecksInterface.PRM_IS_LONG));    
-    
+   
     public static void registerDefinitions() {
 
         BaseRegisterDefinitions();

@@ -92,9 +92,11 @@ public class DeviceListener extends Thread
                 if( udp == null )
                     return;                
                 
-                if( udp.destination() != 6112 )
-                    return;                                  
-                             
+                if( listenPort >= 0 ) {
+                    if( udp.destination() != listenPort )
+                        return;       
+                }
+                            
 /*                
                 if( last_sent > 0 ) {
                     last_sent -= 1;
