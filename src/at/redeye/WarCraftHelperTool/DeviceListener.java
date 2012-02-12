@@ -201,6 +201,9 @@ public class DeviceListener extends Thread
             
             pcap.loop(1, jpacketHandler, this.getName());
             
+            if( do_stop )
+                break;
+            
             PcapPacket send_packet =  to_send.poll();
             
             if( send_packet != null ) { 
