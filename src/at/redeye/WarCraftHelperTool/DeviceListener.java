@@ -97,7 +97,7 @@ public class DeviceListener extends Thread
                         return;       
                 }
                             
-/*                
+/*
                 if( last_sent > 0 ) {
                     last_sent -= 1;
                     
@@ -106,8 +106,8 @@ public class DeviceListener extends Thread
                     }
                     
                     return;
-                }                
-*/                
+                }                               
+                */
                 
                 logger.debug(String.format("%s udp broadcst on port %d detected", user, udp.destination() ));
                 
@@ -231,7 +231,7 @@ public class DeviceListener extends Thread
                     Ethernet ether = send_packet.getHeader(new Ethernet());
                     ether.source(device.getHardwareAddress());                    
                     Ip4 ipv4 = send_packet.getHeader(new Ip4());
-                    ipv4.source(local_address.getAddress());
+                    ipv4.source(local_address.getAddress());                    
                     ipv4.destination(broadcast_address.getAddress());
                     ipv4.checksum(ipv4.calculateChecksum());
                     ether.checksum(ether.calculateChecksum());
