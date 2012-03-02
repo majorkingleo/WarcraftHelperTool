@@ -30,7 +30,7 @@ public class RegReader {
             
             buf = ByteBuffer.wrap(height.getByteData());
             int iheight = buf.getInt();    
-            
+                       
             logger.debug("warcraft screen size is: " + iwidth + "x" + iheight);
             
             return new Dimension(iwidth, iheight);
@@ -48,6 +48,12 @@ public class RegReader {
     {
         return Registry.HKEY_CURRENT_USER.openSubKey("Software\\Blizzard Entertainment\\Warcraft III\\Video");
     }
+    
+    public RegistryKey createKeyForWrite() throws NoSuchKeyException, RegistryException
+    {
+        return Registry.HKEY_CURRENT_USER.createSubKey("Software\\Blizzard Entertainment\\Warcraft III\\Video",
+                "", RegistryKey.ACCESS_ALL);
+    }    
     
     private RegistryKey getKeyForWrite() throws NoSuchKeyException, RegistryException
     {

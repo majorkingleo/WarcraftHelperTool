@@ -4,10 +4,7 @@
  */
 package at.redeye.WarCraftHelperTool;
 
-import at.redeye.FrameWork.base.AutoMBox;
-import at.redeye.FrameWork.base.BaseDialog;
-import at.redeye.FrameWork.base.BaseModuleLauncher;
-import at.redeye.FrameWork.base.Root;
+import at.redeye.FrameWork.base.*;
 import at.redeye.FrameWork.base.bindtypes.DBInteger;
 import at.redeye.FrameWork.base.prm.impl.gui.LocalConfig;
 import at.redeye.FrameWork.base.tablemanipulator.TableManipulator;
@@ -114,17 +111,42 @@ public class MainWin extends BaseDialog {
             bgroup.add(wmenu_size);
             jMScreenSize.add(wmenu_size);           
             
-        }
+        }               
         
         ArrayList<Dimension> screen_sizes = getScreenSizes();
         
+        Dimension default_dim = null;
+        JMenuItem j_default_menu = null;
+        
         for( Dimension dim :  screen_sizes ) {
+            default_dim = dim;
             JMenuItem wmenu_size = new JRadioButtonMenuItem(String.format("Bildschirmauflösung: %dx%d",dim.width, dim.height));
+            j_default_menu = wmenu_size;
             
             wmenu_size.addActionListener(new SetSizeListener(dim));
             
             jMScreenSize.add(wmenu_size);
             bgroup.add(wmenu_size);
+        }
+        
+        if( dim_warcraft == null ) {
+            
+            final Dimension first_default_dim = default_dim;
+            final JMenuItem j_default_menu_first = j_default_menu;
+            
+            AutoLogger al = new AutoLogger(MainWin.class.getName()){
+
+                @Override
+                public void do_stuff() throws Exception {
+                    regreader.createKeyForWrite();
+                    
+                    if( first_default_dim != null ) {
+                        regreader.setWarcraftScreenSize(first_default_dim);  
+                        j_default_menu_first.setSelected(true);
+                    }
+                }                
+            };
+           
         }
     }
 
