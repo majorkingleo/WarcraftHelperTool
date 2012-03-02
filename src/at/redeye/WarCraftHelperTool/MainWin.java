@@ -4,6 +4,7 @@
  */
 package at.redeye.WarCraftHelperTool;
 
+import at.redeye.FrameWork.base.AutoMBox;
 import at.redeye.FrameWork.base.BaseDialog;
 import at.redeye.FrameWork.base.BaseModuleLauncher;
 import at.redeye.FrameWork.base.Root;
@@ -11,10 +12,16 @@ import at.redeye.FrameWork.base.bindtypes.DBInteger;
 import at.redeye.FrameWork.base.prm.impl.gui.LocalConfig;
 import at.redeye.FrameWork.base.tablemanipulator.TableManipulator;
 import at.redeye.Plugins.ShellExec.ShellExec;
+import java.awt.*;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Vector;
+import javax.swing.ButtonGroup;
+import javax.swing.JMenuItem;
 import javax.swing.JOptionPane;
+import javax.swing.JRadioButtonMenuItem;
 import org.apache.log4j.PatternLayout;
 import org.jnetpcap.Pcap;
 import org.jnetpcap.PcapIf;
@@ -32,6 +39,28 @@ public class MainWin extends BaseDialog {
     List<PcapIf> alldevs = new ArrayList<PcapIf>();
     ArrayList<InterfaceStruct> interfaces;
     Vector<DeviceListener> listeners;
+    RegReader regreader = new RegReader();
+    
+    private class SetSizeListener implements ActionListener
+    {
+        Dimension dim;
+        JMenuItem wmenu_size = null;
+        
+        public SetSizeListener( Dimension dim ) {
+            this.dim = dim;
+        }
+        
+        @Override
+        public void actionPerformed(ActionEvent e) {
+            new AutoMBox(getTitle()) {
+
+                @Override
+                public void do_stuff() throws Exception {                                        
+                    regreader.setWarcraftScreenSize(dim);  
+                }
+            };           
+        }                
+    }
     
     public MainWin(Root root) {
         super(root,root.getAppTitle());
@@ -73,7 +102,30 @@ public class MainWin extends BaseDialog {
                     }
                 }
             }
-        });
+        });                           
+        
+        ButtonGroup bgroup  = new ButtonGroup();
+        
+        Dimension dim_warcraft = regreader.getWarcraftScreenSize();
+        
+        if( dim_warcraft != null ) {
+            JMenuItem wmenu_size = new JRadioButtonMenuItem(String.format("momentane Warcraft Einstellung: %dx%d",dim_warcraft.width, dim_warcraft.height));
+            wmenu_size.setSelected(true);
+            bgroup.add(wmenu_size);
+            jMScreenSize.add(wmenu_size);           
+            
+        }
+        
+        ArrayList<Dimension> screen_sizes = getScreenSizes();
+        
+        for( Dimension dim :  screen_sizes ) {
+            JMenuItem wmenu_size = new JRadioButtonMenuItem(String.format("Bildschirmauflösung: %dx%d",dim.width, dim.height));
+            
+            wmenu_size.addActionListener(new SetSizeListener(dim));
+            
+            jMScreenSize.add(wmenu_size);
+            bgroup.add(wmenu_size);
+        }
     }
 
     void initDeviceList()
@@ -170,6 +222,22 @@ public class MainWin extends BaseDialog {
         });        
     }
     
+    public static ArrayList<Dimension> getScreenSizes() {
+        
+        ArrayList<Dimension> dims = new ArrayList();
+        
+        GraphicsEnvironment ge = GraphicsEnvironment.getLocalGraphicsEnvironment();
+        GraphicsDevice[] gs = ge.getScreenDevices();
+        for (int j = 0; j < gs.length; j++) {
+            GraphicsDevice gd = gs[j];
+            GraphicsConfiguration[] gc = gd.getConfigurations();
+            for (int i = 0; i < gc.length; i++) {
+               dims.add(gc[i].getBounds().getSize());
+            }
+        }
+        return dims;
+    }
+    
     @SuppressWarnings("unchecked")
     // <editor-fold defaultstate="collapsed" desc="Generated Code">//GEN-BEGIN:initComponents
     private void initComponents() {
@@ -187,6 +255,7 @@ public class MainWin extends BaseDialog {
         jMenu2 = new javax.swing.JMenu();
         jMAbout = new javax.swing.JMenuItem();
         jMChangeLog = new javax.swing.JMenuItem();
+        jMScreenSize = new javax.swing.JMenu();
 
         setDefaultCloseOperation(javax.swing.WindowConstants.DISPOSE_ON_CLOSE);
 
@@ -238,6 +307,7 @@ public class MainWin extends BaseDialog {
         jMenu2.setText("Info");
 
         jMAbout.setText("Über");
+        jMAbout.setCursor(new java.awt.Cursor(java.awt.Cursor.DEFAULT_CURSOR));
         jMAbout.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
                 jMAboutActionPerformed(evt);
@@ -254,6 +324,9 @@ public class MainWin extends BaseDialog {
         jMenu2.add(jMChangeLog);
 
         jMenuBar1.add(jMenu2);
+
+        jMScreenSize.setText("Warcraft Bildschirmauflösung");
+        jMenuBar1.add(jMScreenSize);
 
         setJMenuBar(jMenuBar1);
 
@@ -293,6 +366,7 @@ public class MainWin extends BaseDialog {
     // Variables declaration - do not modify//GEN-BEGIN:variables
     private javax.swing.JMenuItem jMAbout;
     private javax.swing.JMenuItem jMChangeLog;
+    private javax.swing.JMenu jMScreenSize;
     private javax.swing.JMenuItem jMSettings;
     private javax.swing.JMenu jMenu1;
     private javax.swing.JMenu jMenu2;

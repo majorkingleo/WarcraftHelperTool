@@ -7,8 +7,6 @@ package at.redeye.WarCraftHelperTool;
 import at.redeye.FrameWork.base.BaseAppConfigDefinitions;
 import at.redeye.FrameWork.base.prm.PrmDefaultChecksInterface;
 import at.redeye.FrameWork.base.prm.bindtypes.DBConfig;
-import at.redeye.FrameWork.base.prm.impl.GlobalConfigDefinitions;
-import at.redeye.FrameWork.base.prm.impl.LocalConfigDefinitions;
 import at.redeye.FrameWork.base.prm.impl.PrmDefaultCheckSuite;
 
 /**
