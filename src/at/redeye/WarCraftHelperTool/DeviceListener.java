@@ -9,28 +9,22 @@ import java.net.*;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.logging.Level;
 import org.apache.log4j.Logger;
-import org.jnetpcap.Pcap;
-import org.jnetpcap.PcapIf;
-import org.jnetpcap.PcapSockAddr;
-import org.jnetpcap.packet.PcapPacket;
-import org.jnetpcap.packet.PcapPacketHandler;
-import org.jnetpcap.protocol.lan.Ethernet;
-import org.jnetpcap.protocol.network.Ip4;
-import org.jnetpcap.protocol.tcpip.Udp;
+import org.pcap4j.core.PcapNetworkInterface;
 
 /**
  *
  * @author moberza
  */
+
 public class DeviceListener extends Thread
 {
     private static final Logger logger = Logger.getLogger(DeviceListener.class);
-    PcapIf device;
+    PcapNetworkInterface device;
     StringBuilder errbuf = new StringBuilder();
-    PcapPacketHandler<String> jpacketHandler;
+    //PcapPacketHandler<String> jpacketHandler;
     boolean do_stop = false;
-    Pcap pcap;
-    ConcurrentLinkedQueue<PcapPacket> to_send = new ConcurrentLinkedQueue();
+    //Pcap pcap;
+   // ConcurrentLinkedQueue<PcapPacket> to_send = new ConcurrentLinkedQueue();
     MainWin mainwin;
     
     int last_sent = 0;
@@ -39,7 +33,7 @@ public class DeviceListener extends Thread
     InetAddress broadcast_address;
     InetAddress local_address;
     
-    public DeviceListener(PcapIf device, final MainWin mainwin) {
+    public DeviceListener(PcapNetworkInterface device, final MainWin mainwin) {
         super(getName(device));
 
         this.mainwin = mainwin;
@@ -48,7 +42,7 @@ public class DeviceListener extends Thread
        listenPort = Integer.valueOf(mainwin.getRoot().getSetup().getLocalConfig(AppConfigDefinitions.ListenPort));
         
        final Thread sender = this;
-
+/*
         jpacketHandler = new PcapPacketHandler<String>() {
 
             @Override
@@ -97,17 +91,17 @@ public class DeviceListener extends Thread
                         return;       
                 }
                             
-/*
-                if( last_sent > 0 ) {
-                    last_sent -= 1;
-                    
-                    if( last_sent < 0 ) {
-                        last_sent = 0;                        
-                    }
-                    
-                    return;
-                }                               
-                */
+
+                //if( last_sent > 0 ) {
+                //    last_sent -= 1;
+                //    
+                //    if( last_sent < 0 ) {
+                //        last_sent = 0;                        
+                //    }
+                //    
+                //    return;
+                //}                               
+                
                 
                 logger.debug(String.format("%s udp broadcst on port %d detected", user, udp.destination() ));
                 
@@ -115,18 +109,18 @@ public class DeviceListener extends Thread
                 
                 //logger.debug(String.format("%20s udp: %s %s", user, udp.toString(), eth.toString()));
                 
-                /*
-                logger.debug(String.format("Received packet at %s caplen=%-4d len=%-4d %s\n",
-                        new Date(packet.getCaptureHeader().timestampInMillis()),
-                        packet.getCaptureHeader().caplen(), // Length actually captured  
-                        packet.getCaptureHeader().wirelen(), // Original length   
-                        user // User supplied object  
-                        ));                         
-                        */
+                
+                //logger.debug(String.format("Received packet at %s caplen=%-4d len=%-4d %s\n",
+                //        new Date(packet.getCaptureHeader().timestampInMillis()),
+                //        packet.getCaptureHeader().caplen(), // Length actually captured  
+                //        packet.getCaptureHeader().wirelen(), // Original length   
+                //        user // User supplied object  
+                //        ));                                                
                 
             }
         };
-        
+*/
+        /*
         try {
             
             
@@ -149,6 +143,8 @@ public class DeviceListener extends Thread
         } catch( UnknownHostException ex ) {
             logger.error(ex,ex);
         }        
+        
+        */
     }
     
     public static Long ipToInt(String addr) {
@@ -188,6 +184,7 @@ public class DeviceListener extends Thread
     @Override
     public void run()
     {
+        /*
         int snaplen = 64 * 1024;           // Capture all packets, no trucation  
         int flags = Pcap.MODE_NON_PROMISCUOUS; // capture all packets  
         int timeout = 100;           // 10 seconds in millis  
@@ -209,24 +206,7 @@ public class DeviceListener extends Thread
             PcapPacket send_packet =  to_send.poll();
             
             if( send_packet != null ) { 
-               
-                /*
-                Udp sent_udp = send_packet.getHeader(new Udp());                    
-                byte data[] = sent_udp.getPayload();
-                DatagramPacket udp_packet = new DatagramPacket(data, data.length,broadcast_address, listenPort);    
-                               
-                try {
-                    DatagramSocket dsocket = new DatagramSocket();
-                    dsocket.send(udp_packet);
-                    dsocket.close();
-                    last_sent++;
-                    mainwin.incSent(this);
-                } catch ( IOException ex ) {
-                    logger.error(ex);
-                }
-                *
-                */
-                
+                              
                 try {
                     Ethernet ether = send_packet.getHeader(new Ethernet());
                     ether.source(device.getHardwareAddress());                    
@@ -251,41 +231,38 @@ public class DeviceListener extends Thread
                     continue;
                 }                    
                     
-                    /*
-                    byte bytes[] = send_packet.getByteArray(0, send_packet.size());  
-                    last_sent++;
-                    if( pcap.sendPacket(bytes) == 0 ) {
-                        mainwin.incSent(this);                    
-                        logger.debug(String.format("%s Sent", getName()));
-                    } else {
-                        logger.error(String.format("failed sending %s",send_packet.toString()));
-                    }                  
-                    */
+ 
 
             }
         }
         
         pcap.close();
+        */
     }
     
     void doStop()
     {
         do_stop = true;
-        pcap.breakloop();        
+        //pcap.breakloop();        
     }
     
-    public static String getName(PcapIf device ) {
+    public static String getName(PcapNetworkInterface device ) {
         
         String descr = device.getDescription();
-        descr += " " + device.getAddresses().get(0).getAddr().toString();
+        
+        var addresses = device.getAddresses();
+        
+        if( addresses != null && !addresses.isEmpty() ) {
+            descr += " " + addresses.getFirst().toString();
+        }
         
         return descr;
     }
-    
+    /*
     public void send(PcapPacket packet)
     {        
         to_send.add(packet);  
         pcap.breakloop();
-    }
+    }*/
 
 }

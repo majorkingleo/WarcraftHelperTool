@@ -15,14 +15,15 @@ import java.awt.event.ActionListener;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Vector;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import javax.swing.ButtonGroup;
 import javax.swing.JMenuItem;
 import javax.swing.JOptionPane;
 import javax.swing.JRadioButtonMenuItem;
 import org.apache.log4j.PatternLayout;
-import org.jnetpcap.Pcap;
-import org.jnetpcap.PcapIf;
-import org.jnetpcap.packet.PcapPacket;
+import org.pcap4j.core.PcapNativeException;
+import org.pcap4j.core.PcapNetworkInterface;
 
 /**
  *
@@ -33,7 +34,7 @@ public class MainWin extends BaseDialog {
     TableManipulator tm;
 
     StringBuilder errbuf = new StringBuilder();
-    List<PcapIf> alldevs = new ArrayList<PcapIf>();
+    List<PcapNetworkInterface> alldevs = new ArrayList<PcapNetworkInterface>();
     ArrayList<InterfaceStruct> interfaces;
     Vector<DeviceListener> listeners;
     RegReader regreader = new RegReader();
@@ -91,9 +92,9 @@ public class MainWin extends BaseDialog {
                 } catch( UnsatisfiedLinkError ex ) {
                     if( ex.toString().contains("dependent") ) {
                         logger.error(ex,ex);
-                        JOptionPane.showMessageDialog(rootPane, "Please Install the WinPcap Library http://www.winpcap.org/install/default.htm");
+                        JOptionPane.showMessageDialog(rootPane, "Please Install the npcap Library https://github.com/nmap/npcap");
                         ShellExec exec = new ShellExec();
-                        exec.execute("http://www.winpcap.org/install/default.htm");
+                        exec.execute("https://github.com/nmap/npcap");
                     } else {
                         logger.error(ex,ex);
                     }
@@ -156,9 +157,15 @@ public class MainWin extends BaseDialog {
     {
         interfaces = new ArrayList();
         listeners = new Vector();
+       
+        try {
+            alldevs = org.pcap4j.core.Pcaps.findAllDevs();
+        } catch (PcapNativeException ex) {
+            logger.error("Can't read list of devices: %s", ex);
+            return;
+        }
         
-        int r = Pcap.findAllDevs(alldevs, errbuf);  
-        if (r == Pcap.NOT_OK || alldevs.isEmpty()) {  
+        if (alldevs.isEmpty()) {  
             logger.error(String.format("Can't read list of devices, error is %s", errbuf  
                 .toString()));  
             return;  
@@ -167,7 +174,7 @@ public class MainWin extends BaseDialog {
         logger.debug("Network devices found:");  
   
         int i = 0;  
-        for (PcapIf device : alldevs) {  
+        for (var device : alldevs) {  
             String description =  
                 (device.getDescription() != null) ? device.getDescription()  
                     : "No description available";                          
@@ -185,7 +192,7 @@ public class MainWin extends BaseDialog {
         }
         
         tm.addAll(interfaces);
-        tm.autoResize();
+        tm.autoResize();        
     }
     
     @Override
@@ -206,7 +213,7 @@ public class MainWin extends BaseDialog {
 
         super.close();
     }
-    
+    /*
     void sendToOther( Thread me, PcapPacket packet ) {
         for( int i = 0; i < listeners.size(); i++ ) {
             if( listeners.get(i) != me  ) {
@@ -227,7 +234,7 @@ public class MainWin extends BaseDialog {
             }        
         });
     }        
-    
+    */
     void incSent( Thread me ) {
         for( int i = 0; i < listeners.size(); i++ ) {
             if( listeners.get(i) == me  ) {
