@@ -9,7 +9,18 @@ import java.net.*;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.logging.Level;
 import org.apache.log4j.Logger;
+import org.pcap4j.core.NotOpenException;
+import org.pcap4j.core.PacketListener;
+import org.pcap4j.core.PcapHandle;
+import org.pcap4j.core.PcapNativeException;
 import org.pcap4j.core.PcapNetworkInterface;
+import org.pcap4j.core.PcapNetworkInterface.PromiscuousMode;
+import org.pcap4j.core.Pcaps;
+import org.pcap4j.packet.EthernetPacket;
+import org.pcap4j.packet.Packet;
+import org.pcap4j.packet.Packet.Header;
+import org.pcap4j.packet.IpV4Packet;
+import org.pcap4j.packet.UdpPacket;
 
 /**
  *
@@ -21,9 +32,8 @@ public class DeviceListener extends Thread
     private static final Logger logger = Logger.getLogger(DeviceListener.class);
     PcapNetworkInterface device;
     StringBuilder errbuf = new StringBuilder();
-    //PcapPacketHandler<String> jpacketHandler;
+    PacketListener jpacketHandler;
     boolean do_stop = false;
-    //Pcap pcap;
    // ConcurrentLinkedQueue<PcapPacket> to_send = new ConcurrentLinkedQueue();
     MainWin mainwin;
     
@@ -32,28 +42,30 @@ public class DeviceListener extends Thread
     
     InetAddress broadcast_address;
     InetAddress local_address;
+    private PcapHandle pcap;
     
     public DeviceListener(PcapNetworkInterface device, final MainWin mainwin) {
         super(getName(device));
 
         this.mainwin = mainwin;
-        this.device = device;
+        this.device = device;               
         
        listenPort = Integer.valueOf(mainwin.getRoot().getSetup().getLocalConfig(AppConfigDefinitions.ListenPort));
         
        final Thread sender = this;
-/*
-        jpacketHandler = new PcapPacketHandler<String>() {
 
+        jpacketHandler = new PacketListener() {
+           
             @Override
-            public void nextPacket(PcapPacket packet, String user) {
-               
-                Ethernet eth = null;                
-                Ip4 ipv4 = null;
+            public void gotPacket(Packet packet) {    
+                         
+                IpV4Packet ipv4 = null;
+                EthernetPacket eth = null;
                 
                 try {
-                    eth = packet.getHeader( new Ethernet());
-                    ipv4 = packet.getHeader( new Ip4() );
+                    eth = packet.get( EthernetPacket.class );
+                    ipv4 = packet.get(IpV4Packet.class);                   
+
                 } catch( IndexOutOfBoundsException ex ) {
                     logger.debug("unknown packet",ex);
                     return;
@@ -62,7 +74,7 @@ public class DeviceListener extends Thread
                 if( eth == null || ipv4 == null )
                     return;                                
                 
-                byte mac_dest[] = eth.destination();
+                byte mac_dest[] = eth.getHeader().getDstAddr().getAddress();
                 
                 // listen to broadcasts
                 for( int i = 0; i < mac_dest.length; i++ )
@@ -71,7 +83,7 @@ public class DeviceListener extends Thread
                         return;
                 }
                 
-                byte ip_dest[] = ipv4.destination();
+                byte ip_dest[] = ipv4.getHeader().getDstAddr().getAddress();
                 
                 // listen to broadcasts
                 for( int i = 0; i < ip_dest.length; i++ )
@@ -81,14 +93,14 @@ public class DeviceListener extends Thread
                 }                
                 
                 
-                Udp udp = packet.getHeader( new Udp());
+                UdpPacket udp = packet.get( UdpPacket.class );
                 
                 if( udp == null )
                     return;                
                 
                 if( listenPort >= 0 ) {
-                    if( udp.destination() != listenPort )
-                        return;       
+                    if( udp.getHeader().getDstPort().valueAsInt() != listenPort )
+                        return;
                 }
                             
 
@@ -103,9 +115,9 @@ public class DeviceListener extends Thread
                 //}                               
                 
                 
-                logger.debug(String.format("%s udp broadcst on port %d detected", user, udp.destination() ));
+                logger.debug(String.format("udp broadcst on port %d detected", udp.getHeader().getDstPort().valueAsInt() ));
                 
-                mainwin.sendToOther(sender, packet);
+                //mainwin.sendToOther(sender, packet);
                 
                 //logger.debug(String.format("%20s udp: %s %s", user, udp.toString(), eth.toString()));
                 
@@ -117,9 +129,9 @@ public class DeviceListener extends Thread
                 //        user // User supplied object  
                 //        ));                                                
                 
-            }
+            }         
         };
-*/
+
         /*
         try {
             
@@ -183,26 +195,34 @@ public class DeviceListener extends Thread
     
     @Override
     public void run()
-    {
-        /*
+    {        
         int snaplen = 64 * 1024;           // Capture all packets, no trucation  
-        int flags = Pcap.MODE_NON_PROMISCUOUS; // capture all packets  
+        PromiscuousMode flags = PromiscuousMode.NONPROMISCUOUS; // capture all packets  
         int timeout = 100;           // 10 seconds in millis  
-        pcap = Pcap.openLive(device.getName(), snaplen, flags, timeout, errbuf);
-
+        /*
+        try {
+            pcap = device.openLive(snaplen, flags, timeout);
+        } catch (PcapNativeException ex) {
+            logger.error("cannot open live capture",ex);
+        }
+*/
         if (pcap == null) {
             logger.error("Error while opening device for capture: "
                     + errbuf.toString());
             return;
         } 
         
-        while( !do_stop ) {            
+        while( !do_stop ) {     
             
-            pcap.loop(1, jpacketHandler, this.getName());
-            
+            try {
+                pcap.loop(1, jpacketHandler);
+            } catch (PcapNativeException | InterruptedException | NotOpenException ex) {
+                logger.error( "pcap.loop failed", ex );
+            }
+                
             if( do_stop )
                 break;
-            
+            /*
             PcapPacket send_packet =  to_send.poll();
             
             if( send_packet != null ) { 
@@ -234,10 +254,10 @@ public class DeviceListener extends Thread
  
 
             }
+            */
         }
         
-        pcap.close();
-        */
+        pcap.close();        
     }
     
     void doStop()
