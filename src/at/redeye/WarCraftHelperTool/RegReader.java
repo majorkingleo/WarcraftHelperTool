@@ -4,7 +4,7 @@
  */
 package at.redeye.WarCraftHelperTool;
 
-import com.ice.jni.registry.*;
+//import com.ice.jni.registry.*;
 import java.awt.Dimension;
 import java.nio.ByteBuffer;
 import org.apache.log4j.Logger;
@@ -18,7 +18,8 @@ public class RegReader {
     private static final Logger logger = Logger.getLogger(RegReader.class);
     
     public Dimension getWarcraftScreenSize()
-    {
+    {        
+        /*
         try {
             RegistryKey key = getKey();                   
         
@@ -40,10 +41,10 @@ public class RegReader {
         } catch (RegistryException ex) {
             logger.error(ex, ex);
         }     
-
+*/
         return null;
     }
-    
+    /*
     private RegistryKey getKey() throws NoSuchKeyException, RegistryException
     {
         return Registry.HKEY_CURRENT_USER.openSubKey("Software\\Blizzard Entertainment\\Warcraft III\\Video");
@@ -102,5 +103,5 @@ public class RegReader {
             ex.printStackTrace();
         }
     }
-
+*/
 }

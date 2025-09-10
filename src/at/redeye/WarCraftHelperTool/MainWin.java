@@ -53,7 +53,7 @@ public class MainWin extends BaseDialog {
 
                 @Override
                 public void do_stuff() throws Exception {                                        
-                    regreader.setWarcraftScreenSize(dim);  
+//                    regreader.setWarcraftScreenSize(dim);  
                 }
             };           
         }                
@@ -138,12 +138,14 @@ public class MainWin extends BaseDialog {
 
                 @Override
                 public void do_stuff() throws Exception {
+                    /*
                     regreader.createKeyForWrite();
                     
                     if( first_default_dim != null ) {
                         regreader.setWarcraftScreenSize(first_default_dim);  
                         j_default_menu_first.setSelected(true);
                     }
+*/
                 }                
             };
            
