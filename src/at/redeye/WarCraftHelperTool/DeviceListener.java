@@ -199,13 +199,13 @@ public class DeviceListener extends Thread
         int snaplen = 64 * 1024;           // Capture all packets, no trucation  
         PromiscuousMode flags = PromiscuousMode.NONPROMISCUOUS; // capture all packets  
         int timeout = 100;           // 10 seconds in millis  
-        /*
+        
         try {
             pcap = device.openLive(snaplen, flags, timeout);
         } catch (PcapNativeException ex) {
             logger.error("cannot open live capture",ex);
         }
-*/
+
         if (pcap == null) {
             logger.error("Error while opening device for capture: "
                     + errbuf.toString());
@@ -263,7 +263,11 @@ public class DeviceListener extends Thread
     void doStop()
     {
         do_stop = true;
-        //pcap.breakloop();        
+        try {
+            pcap.breakLoop();
+        } catch (NotOpenException ex) {
+            logger.error(ex,ex);
+        }
     }
     
     public static String getName(PcapNetworkInterface device ) {
