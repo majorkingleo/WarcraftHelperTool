@@ -4,8 +4,9 @@
  */
 package at.redeye.WarCraftHelperTool;
 
-//import com.ice.jni.registry.*;
 import java.awt.Dimension;
+import java.io.IOException;
+import java.lang.reflect.InvocationTargetException;
 import java.nio.ByteBuffer;
 import org.apache.log4j.Logger;
 
@@ -16,68 +17,40 @@ import org.apache.log4j.Logger;
 public class RegReader {   
         
     private static final Logger logger = Logger.getLogger(RegReader.class);
+    private static final String PATH = "HKEY_CURRENT_USER\\Software\\Blizzard Entertainment\\Warcraft III\\Video";
     
     public Dimension getWarcraftScreenSize()
-    {        
-        /*
-        try {
-            RegistryKey key = getKey();                   
-        
-            RegistryValue width = key.getValue("reswidth");
-            RegistryValue height = key.getValue("resheight");    
+    {                
+        try {                       
+            String swidth = WindowsRegistry.getValue( PATH, "reswidth");
             
-            ByteBuffer buf = ByteBuffer.wrap(width.getByteData());
-            int iwidth = buf.getInt();
+            if( swidth.startsWith("0x") ) {
+                swidth = swidth.substring(2);
+            }
+            long iwidth = Long.parseLong(swidth, 16);
             
-            buf = ByteBuffer.wrap(height.getByteData());
-            int iheight = buf.getInt();    
-                       
+            String sheight = WindowsRegistry.getValue(PATH, "resheight");
+            
+            if( sheight.startsWith("0x") ) {
+                sheight = sheight.substring(2);
+            }
+            long iheight = Long.parseLong(sheight, 16);    
+
             logger.debug("warcraft screen size is: " + iwidth + "x" + iheight);
             
-            return new Dimension(iwidth, iheight);
-        } catch (NoSuchKeyException ex) {
-            logger.error(ex, ex);
+            return new Dimension((int)iwidth, (int)iheight);        
+        } catch (IOException | InterruptedException ex ) {
+            logger.error(ex,ex);
             return null;
-        } catch (RegistryException ex) {
-            logger.error(ex, ex);
-        }     
-*/
-        return null;
-    }
-    /*
-    private RegistryKey getKey() throws NoSuchKeyException, RegistryException
-    {
-        return Registry.HKEY_CURRENT_USER.openSubKey("Software\\Blizzard Entertainment\\Warcraft III\\Video");
-    }
-    
-    public RegistryKey createKeyForWrite() throws NoSuchKeyException, RegistryException
-    {
-        return Registry.HKEY_CURRENT_USER.createSubKey("Software\\Blizzard Entertainment\\Warcraft III\\Video",
-                "", RegistryKey.ACCESS_ALL);
-    }    
-    
-    private RegistryKey getKeyForWrite() throws NoSuchKeyException, RegistryException
-    {
-        return Registry.HKEY_CURRENT_USER.openSubKey("Software\\Blizzard Entertainment\\Warcraft III\\Video",
-                RegistryKey.ACCESS_ALL);
-    }    
-
-    public void setWarcraftScreenSize(Dimension dim) throws NoSuchKeyException, RegistryException {
-        RegistryKey key = getKeyForWrite();
-        
-        if( key == null ) {
-            throw new RuntimeException("Bitte Warcraft einmal starten. Dann nocheinmal probieren.");
         }
-        RegDWordValue width = new RegDWordValue( key,"reswidth");
-        width.setData(dim.width);
-        
-        RegDWordValue height = new RegDWordValue( key,"resheight");
-        height.setData(dim.height);
-        
-        key.setValue(width);
-        key.setValue(height);
+    }
+ 
+    public void setWarcraftScreenSize(Dimension dim) throws IOException, InterruptedException {
+
+        WindowsRegistry.overwriteDwordValue(PATH, "reswidth", String.valueOf(dim.width));
+        WindowsRegistry.overwriteDwordValue(PATH, "resheight", String.valueOf(dim.height));
     }    
-    
+    /*
     public static void main( String args[] ) {
         
         try {

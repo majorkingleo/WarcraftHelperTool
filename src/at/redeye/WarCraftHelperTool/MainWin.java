@@ -53,7 +53,7 @@ public class MainWin extends BaseDialog {
 
                 @Override
                 public void do_stuff() throws Exception {                                        
-//                    regreader.setWarcraftScreenSize(dim);  
+                    regreader.setWarcraftScreenSize(dim);  
                 }
             };           
         }                
@@ -103,7 +103,13 @@ public class MainWin extends BaseDialog {
         
         ButtonGroup bgroup  = new ButtonGroup();
         
-        Dimension dim_warcraft = regreader.getWarcraftScreenSize();
+        Dimension dim_warcraft = null;
+        
+        try {
+            dim_warcraft = regreader.getWarcraftScreenSize();
+        } catch( Exception ex ) {
+            logger.error(ex,ex);
+        }
         
         if( dim_warcraft != null ) {
             JMenuItem wmenu_size = new JRadioButtonMenuItem(String.format("momentane Warcraft Einstellung: %dx%d",dim_warcraft.width, dim_warcraft.height));
