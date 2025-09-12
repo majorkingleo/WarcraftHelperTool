@@ -22,6 +22,7 @@ import javax.swing.JRadioButtonMenuItem;
 import org.apache.log4j.PatternLayout;
 import org.pcap4j.core.PcapNativeException;
 import org.pcap4j.core.PcapNetworkInterface;
+import org.pcap4j.packet.Packet;
 
 /**
  *
@@ -211,8 +212,8 @@ public class MainWin extends BaseDialog {
 
         super.close();
     }
-    /*
-    void sendToOther( Thread me, PcapPacket packet ) {
+    
+    void sendToOther( Thread me, Packet packet ) {
         for( int i = 0; i < listeners.size(); i++ ) {
             if( listeners.get(i) != me  ) {
                 
@@ -232,7 +233,7 @@ public class MainWin extends BaseDialog {
             }        
         });
     }        
-    */
+    
     void incSent( Thread me ) {
         for( int i = 0; i < listeners.size(); i++ ) {
             if( listeners.get(i) == me  ) {

@@ -34,14 +34,14 @@ public class DeviceListener extends Thread
     StringBuilder errbuf = new StringBuilder();
     PacketListener jpacketHandler;
     boolean do_stop = false;
-   // ConcurrentLinkedQueue<PcapPacket> to_send = new ConcurrentLinkedQueue();
+    ConcurrentLinkedQueue<Packet> to_send = new ConcurrentLinkedQueue();
     MainWin mainwin;
     
     int last_sent = 0;
     int listenPort = 0;
     
     InetAddress broadcast_address;
-    InetAddress local_address;
+    InetAddress local_address = null;
     private PcapHandle pcap;
     
     public DeviceListener(PcapNetworkInterface device, final MainWin mainwin) {
@@ -117,7 +117,7 @@ public class DeviceListener extends Thread
                 
                 logger.debug(String.format("udp broadcst on port %d detected", udp.getHeader().getDstPort().valueAsInt() ));
                 
-                //mainwin.sendToOther(sender, packet);
+                mainwin.sendToOther(sender, packet);
                 
                 //logger.debug(String.format("%20s udp: %s %s", user, udp.toString(), eth.toString()));
                 
@@ -131,32 +131,33 @@ public class DeviceListener extends Thread
                 
             }         
         };
-
-        /*
+        
         try {
             
             
-            byte netmask_bytes[] = device.getAddresses().get(0).getNetmask().getData();            
-            int netmask = (int) unsignedIntToLong(netmask_bytes);                        
+            var addresses = device.getAddresses();
             
-            byte ip_bytes[] = device.getAddresses().get(0).getAddr().getData();           
-            int ip = (int) unsignedIntToLong(ip_bytes);                        
-            
-            // apply netmask
-            int broadcast_ip = ip | ( ~ netmask );
-            
-            // logger.debug(String.format("Netmask is: %x ip is: %x broadcast ip: %x", netmask, ip, broadcast_ip));            
-            
-            broadcast_address = Inet4Address.getByName(intToIp(broadcast_ip));           
-            logger.debug("Broadcast Address: " + broadcast_address.toString() + " for device address " + device.getAddresses().get(0).getAddr().toString());
-            
-            local_address = Inet4Address.getByAddress(device.getAddresses().get(0).getAddr().getData());
+            if( !addresses.isEmpty() ) {
+                byte netmask_bytes[] = addresses.get(0).getNetmask().getAddress();
+                int netmask = (int) unsignedIntToLong(netmask_bytes);                        
+
+                byte ip_bytes[] = addresses.get(0).getAddress().getAddress();
+                int ip = (int) unsignedIntToLong(ip_bytes);                        
+
+                // apply netmask
+                int broadcast_ip = ip | ( ~ netmask );
+
+                // logger.debug(String.format("Netmask is: %x ip is: %x broadcast ip: %x", netmask, ip, broadcast_ip));            
+
+                broadcast_address = Inet4Address.getByName(intToIp(broadcast_ip));           
+                logger.debug("Broadcast Address: " + broadcast_address.toString() + " for device address " + addresses.get(0).getAddress().toString());
+
+                local_address = Inet4Address.getByAddress(addresses.get(0).getAddress().getAddress());
+            }
             
         } catch( UnknownHostException ex ) {
             logger.error(ex,ex);
-        }        
-        
-        */
+        }               
     }
     
     public static Long ipToInt(String addr) {
@@ -196,7 +197,7 @@ public class DeviceListener extends Thread
     @Override
     public void run()
     {        
-        int snaplen = 64 * 1024;           // Capture all packets, no trucation  
+        int snaplen = 64 * 1024;           // Capture all packets, no truncation  
         PromiscuousMode flags = PromiscuousMode.NONPROMISCUOUS; // capture all packets  
         int timeout = 100;           // 10 seconds in millis  
         
@@ -216,8 +217,10 @@ public class DeviceListener extends Thread
             
             try {
                 pcap.loop(1, jpacketHandler);
-            } catch (PcapNativeException | InterruptedException | NotOpenException ex) {
+            } catch (PcapNativeException | NotOpenException ex) {
                 logger.error( "pcap.loop failed", ex );
+            } catch(InterruptedException ex ) {
+                // no logging here
             }
                 
             if( do_stop )
@@ -282,11 +285,15 @@ public class DeviceListener extends Thread
         
         return descr;
     }
-    /*
-    public void send(PcapPacket packet)
+    
+    public void send(Packet packet)
     {        
         to_send.add(packet);  
-        pcap.breakloop();
-    }*/
+        try {
+            pcap.breakLoop();
+        } catch (NotOpenException ex) {
+            logger.error(ex,ex);
+        }
+    }
 
 }
