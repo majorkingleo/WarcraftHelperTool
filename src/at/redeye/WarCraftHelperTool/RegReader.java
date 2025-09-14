@@ -6,8 +6,6 @@ package at.redeye.WarCraftHelperTool;
 
 import java.awt.Dimension;
 import java.io.IOException;
-import java.lang.reflect.InvocationTargetException;
-import java.nio.ByteBuffer;
 import org.apache.log4j.Logger;
 
 /**
@@ -24,12 +22,21 @@ public class RegReader {
         try {                       
             String swidth = WindowsRegistry.getValue( PATH, "reswidth");
             
+            if( swidth == null || swidth.isEmpty() ) {
+                return null;
+            }
+            
             if( swidth.startsWith("0x") ) {
                 swidth = swidth.substring(2);
-            }
+            }                        
+            
             long iwidth = Long.parseLong(swidth, 16);
             
             String sheight = WindowsRegistry.getValue(PATH, "resheight");
+            
+            if( sheight == null || sheight.isEmpty() ) {
+                return null;
+            }            
             
             if( sheight.startsWith("0x") ) {
                 sheight = sheight.substring(2);
