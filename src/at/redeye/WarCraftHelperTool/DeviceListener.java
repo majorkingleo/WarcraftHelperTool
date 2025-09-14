@@ -4,10 +4,8 @@
  */
 package at.redeye.WarCraftHelperTool;
 
-import java.io.IOException;
 import java.net.*;
 import java.util.concurrent.ConcurrentLinkedQueue;
-import java.util.logging.Level;
 import org.apache.log4j.Logger;
 import org.pcap4j.core.NotOpenException;
 import org.pcap4j.core.PacketListener;
@@ -15,12 +13,14 @@ import org.pcap4j.core.PcapHandle;
 import org.pcap4j.core.PcapNativeException;
 import org.pcap4j.core.PcapNetworkInterface;
 import org.pcap4j.core.PcapNetworkInterface.PromiscuousMode;
-import org.pcap4j.core.Pcaps;
 import org.pcap4j.packet.EthernetPacket;
 import org.pcap4j.packet.Packet;
-import org.pcap4j.packet.Packet.Header;
 import org.pcap4j.packet.IpV4Packet;
 import org.pcap4j.packet.UdpPacket;
+import org.pcap4j.packet.UnknownPacket;
+import org.pcap4j.packet.namednumber.EtherType;
+import org.pcap4j.packet.namednumber.IpVersion;
+import org.pcap4j.util.MacAddress;
 
 /**
  *
@@ -40,9 +40,11 @@ public class DeviceListener extends Thread
     int last_sent = 0;
     int listenPort = 0;
     
-    InetAddress broadcast_address;
-    InetAddress local_address = null;
+    Inet4Address broadcast_address;
+    Inet4Address local_address = null;
     private PcapHandle pcap;
+    private PcapHandle handle4send;
+    boolean is_valid = true;
     
     public DeviceListener(PcapNetworkInterface device, final MainWin mainwin) {
         super(getName(device));
@@ -50,7 +52,51 @@ public class DeviceListener extends Thread
         this.mainwin = mainwin;
         this.device = device;               
         
+        
+        if( device.isLoopBack() ) {
+           is_valid = false;
+           return;
+       }
+        
        listenPort = Integer.valueOf(mainwin.getRoot().getSetup().getLocalConfig(AppConfigDefinitions.ListenPort));
+       
+       var addresses = device.getAddresses();
+       
+       if( addresses.isEmpty() ) {
+           is_valid = false;
+           return;
+       }      
+       
+       for( var addr : addresses ) {
+                      
+           if( addr.getAddress() instanceof Inet4Address ) {               
+               local_address = (Inet4Address) addr.getAddress();
+               
+               byte netmask_bytes[] = addr.getNetmask().getAddress();
+               int netmask = (int) unsignedIntToLong(netmask_bytes);                        
+
+               byte ip_bytes[] = addresses.get(0).getAddress().getAddress();
+               int ip = (int) unsignedIntToLong(ip_bytes);                        
+
+               // apply netmask
+               int broadcast_ip = ip | ( ~ netmask );
+
+               // logger.debug(String.format("Netmask is: %x ip is: %x broadcast ip: %x", netmask, ip, broadcast_ip));            
+
+               try {
+                    broadcast_address = (Inet4Address)Inet4Address.getByName(intToIp(broadcast_ip));           
+                    logger.debug("Broadcast Address: " + broadcast_address.toString() + " for device address " + addresses.get(0).getAddress().toString());               
+               } catch( UnknownHostException ex ) {
+                   // will not be reached... from an ip address as source
+               }
+               break;
+           }
+       }
+       
+       if( local_address == null ) {
+           is_valid = false;
+           return;
+       }
         
        final Thread sender = this;
 
@@ -130,34 +176,7 @@ public class DeviceListener extends Thread
                 //        ));                                                
                 
             }         
-        };
-        
-        try {
-            
-            
-            var addresses = device.getAddresses();
-            
-            if( !addresses.isEmpty() ) {
-                byte netmask_bytes[] = addresses.get(0).getNetmask().getAddress();
-                int netmask = (int) unsignedIntToLong(netmask_bytes);                        
-
-                byte ip_bytes[] = addresses.get(0).getAddress().getAddress();
-                int ip = (int) unsignedIntToLong(ip_bytes);                        
-
-                // apply netmask
-                int broadcast_ip = ip | ( ~ netmask );
-
-                // logger.debug(String.format("Netmask is: %x ip is: %x broadcast ip: %x", netmask, ip, broadcast_ip));            
-
-                broadcast_address = Inet4Address.getByName(intToIp(broadcast_ip));           
-                logger.debug("Broadcast Address: " + broadcast_address.toString() + " for device address " + addresses.get(0).getAddress().toString());
-
-                local_address = Inet4Address.getByAddress(addresses.get(0).getAddress().getAddress());
-            }
-            
-        } catch( UnknownHostException ex ) {
-            logger.error(ex,ex);
-        }               
+        };                     
     }
     
     public static Long ipToInt(String addr) {
@@ -213,6 +232,19 @@ public class DeviceListener extends Thread
             return;
         } 
         
+        try {
+            handle4send = device.openLive(snaplen, flags, timeout);
+        } catch (PcapNativeException ex) {
+            logger.error("cannot open live capture",ex);
+        }
+
+        if (handle4send == null) {
+            logger.error("Error while opening device for sending: "
+                    + errbuf.toString());
+            return;
+        } 
+        
+        
         while( !do_stop ) {     
             
             try {
@@ -225,12 +257,56 @@ public class DeviceListener extends Thread
                 
             if( do_stop )
                 break;
-            /*
-            PcapPacket send_packet =  to_send.poll();
+            
+            Packet send_packet =  to_send.poll();
             
             if( send_packet != null ) { 
-                              
+                     
+                if( device.getLinkLayerAddresses().isEmpty() ) {
+                    continue;
+                }
+                
                 try {
+                    UdpPacket udp = send_packet.get( UdpPacket.class );
+                    IpV4Packet ipv4 = send_packet.get( IpV4Packet.class );
+                    IpV4Packet.IpV4Header header = ipv4.getHeader();
+                    
+                    IpV4Packet.Builder ipv4Builder = new IpV4Packet.Builder();
+                    
+                    //Inet4Address specific_address = (Inet4Address)(Inet4Address.getAllByName("25.35.134.238")[0]);
+                    
+                    ipv4Builder
+                            .version(IpVersion.IPV4)
+                            .tos(header.getTos())
+                            .identification(header.getIdentification())
+                            .protocol(header.getProtocol())
+                            .srcAddr(local_address)
+                            .dstAddr(broadcast_address)
+                            //.dstAddr(specific_address)
+                            .correctChecksumAtBuild(true)
+                            .correctLengthAtBuild(true)
+                            .ttl(header.getTtl())
+                            .payloadBuilder(new UnknownPacket.Builder().rawData(udp.getRawData()));
+                            
+                    
+                    
+                    EthernetPacket.Builder etherBuilder = new EthernetPacket.Builder();
+                    etherBuilder
+                            .type(EtherType.IPV4)
+                            .srcAddr(MacAddress.getByAddress(device.getLinkLayerAddresses().getFirst().getAddress()))
+                            .dstAddr(MacAddress.ETHER_BROADCAST_ADDRESS)
+                            .paddingAtBuild(true)                            
+                            .payloadBuilder(ipv4Builder);
+                    
+                    Packet p = etherBuilder.build();
+                    logger.debug(p);
+                    
+                    handle4send.sendPacket(p);
+                            
+                    last_sent++;
+                    mainwin.incSent(this);
+                    
+                    /*
                     Ethernet ether = send_packet.getHeader(new Ethernet());
                     ether.source(device.getHardwareAddress());                    
                     Ip4 ipv4 = send_packet.getHeader(new Ip4());
@@ -248,16 +324,11 @@ public class DeviceListener extends Thread
                     } else {
                         logger.error(String.format("failed sending %s",send_packet.toString()));
                     }                        
-                    
-                } catch (IOException ex) {
+                    */
+                } catch (PcapNativeException | NotOpenException ex) {
                     logger.error(ex,ex);
-                    continue;
-                }                    
-                    
- 
-
-            }
-            */
+                }                 
+             }            
         }
         
         pcap.close();        
@@ -294,6 +365,10 @@ public class DeviceListener extends Thread
         } catch (NotOpenException ex) {
             logger.error(ex,ex);
         }
+    }
+    
+    boolean valid() {
+        return is_valid;
     }
 
 }

@@ -179,7 +179,16 @@ public class MainWin extends BaseDialog {
         logger.debug("Network devices found:");  
   
         int i = 0;  
-        for (var device : alldevs) {  
+        for (var device : alldevs) {
+            
+            if( !device.isUp() ) {
+                continue;
+            }
+            
+            if( !device.isRunning() ) {
+                continue;
+            }
+            
             String description =  
                 (device.getDescription() != null) ? device.getDescription()  
                     : "No description available";                          
@@ -189,9 +198,13 @@ public class MainWin extends BaseDialog {
             InterfaceStruct iface = new InterfaceStruct();
             iface.iface.loadFromString(DeviceListener.getName(device));                                   
             
-            interfaces.add(iface);
-            
             DeviceListener listener = new DeviceListener(device, this);
+            if( !listener.valid() ) {
+                continue;
+            }
+                        
+            interfaces.add(iface);
+                       
             listener.start();
             listeners.add(listener);
         }
