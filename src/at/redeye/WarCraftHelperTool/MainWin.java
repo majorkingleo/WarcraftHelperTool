@@ -89,14 +89,10 @@ public class MainWin extends BaseDialog {
                 try {
                     initDeviceList();
                 } catch( UnsatisfiedLinkError ex ) {
-                    if( ex.toString().contains("dependent") ) {
-                        logger.error(ex,ex);
-                        JOptionPane.showMessageDialog(rootPane, "Please Install the npcap Library https://github.com/nmap/npcap");
-                        ShellExec exec = new ShellExec();
-                        exec.execute("https://github.com/nmap/npcap");
-                    } else {
-                        logger.error(ex,ex);
-                    }
+                    logger.error(ex,ex);                    
+                    JOptionPane.showMessageDialog(rootPane, "Please Install the npcap Library https://npcap.com/#download");
+                    ShellExec exec = new ShellExec();
+                    exec.execute("https://npcap.com/#download");
                 }
             }
         });                           
