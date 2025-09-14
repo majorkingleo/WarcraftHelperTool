@@ -140,14 +140,14 @@ public class MainWin extends BaseDialog {
 
                 @Override
                 public void do_stuff() throws Exception {
-                    /*
-                    regreader.createKeyForWrite();
+                    
+                   // regreader.createKeyForWrite();
                     
                     if( first_default_dim != null ) {
                         regreader.setWarcraftScreenSize(first_default_dim);  
                         j_default_menu_first.setSelected(true);
                     }
-*/
+
                 }                
             };
            
@@ -274,10 +274,10 @@ public class MainWin extends BaseDialog {
         GraphicsEnvironment ge = GraphicsEnvironment.getLocalGraphicsEnvironment();
         GraphicsDevice[] gs = ge.getScreenDevices();
         for (int j = 0; j < gs.length; j++) {
-            GraphicsDevice gd = gs[j];
+            GraphicsDevice gd = gs[j];            
             GraphicsConfiguration[] gc = gd.getConfigurations();
             for (int i = 0; i < gc.length; i++) {
-               dims.add(gc[i].getBounds().getSize());
+               dims.add(gc[i].getBounds().getSize());              
             }
         }
         return dims;
