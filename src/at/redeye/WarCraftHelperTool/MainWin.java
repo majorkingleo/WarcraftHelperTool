@@ -8,10 +8,12 @@ import at.redeye.FrameWork.base.*;
 import at.redeye.FrameWork.base.bindtypes.DBInteger;
 import at.redeye.FrameWork.base.prm.impl.gui.LocalConfig;
 import at.redeye.FrameWork.base.tablemanipulator.TableManipulator;
+import at.redeye.FrameWork.utilities.ThreadReader;
 import at.redeye.Plugins.ShellExec.ShellExec;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Vector;
@@ -68,7 +70,7 @@ public class MainWin extends BaseDialog {
         System.out.println(System.getProperty("java.library.path"));
         System.load(path);     
         //System.loadLibrary("jnetpcap_x86");        
-        */
+        */       
         
         TextAreaAppender appender = new TextAreaAppender();
         PatternLayout layout = new PatternLayout("%m%n"); //new PatternLayout("%d{ISO8601} %-5p (%F:%L): %m%n");
@@ -122,7 +124,7 @@ public class MainWin extends BaseDialog {
         
         for( Dimension dim :  screen_sizes ) {
             default_dim = dim;
-            JMenuItem wmenu_size = new JRadioButtonMenuItem(String.format("Bildschirmauflösung: %dx%d",dim.width, dim.height));
+            JMenuItem wmenu_size = new JRadioButtonMenuItem(String.format("%dx%d %.2f",dim.width, dim.height, (float)dim.width / (float)(dim.height)));
             j_default_menu = wmenu_size;
             
             wmenu_size.addActionListener(new SetSizeListener(dim));
@@ -279,7 +281,35 @@ public class MainWin extends BaseDialog {
             for (int i = 0; i < gc.length; i++) {
                dims.add(gc[i].getBounds().getSize());              
             }
+        }               
+        
+        String cmd[] = { "list_monitor_resolutions.exe", "list_monitor_resolutions.exe" };
+        
+        try {
+            ThreadReader reader = new ThreadReader(Runtime.getRuntime().exec( cmd ));
+            reader.start();
+            reader.join();
+            String res = reader.getResult();
+            
+            String lines[] = res.split("\n");
+            
+            for( String line : lines ) {
+                line = line.strip();
+                if( line.isEmpty() ) {
+                    continue;
+                }
+                
+                String values[] = line.split("x");
+                if( values.length == 2 ) {
+                    dims.add(new Dimension( Integer.parseInt(values[0],10), Integer.parseInt(values[1],10)));
+                }
+            }
+                
+            
+        } catch (IOException | InterruptedException | NumberFormatException ex) {
+            logger.error(ex,ex);
         }
+        
         return dims;
     }
     

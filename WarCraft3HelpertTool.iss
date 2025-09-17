@@ -2,7 +2,7 @@
 ; SEE THE DOCUMENTATION FOR DETAILS ON CREATING INNO SETUP SCRIPT FILES!
 
 #define MyAppName "WarCraft3HelperTool"
-#define MyAppVersion "2.0"
+#define MyAppVersion "2.1"
 #define MyAppPublisher "Teekränzchen Inc."
 #define MyAppURL "https://github.com/majorkingleo/WarcraftHelperTool"
 #define MyAppExeName "WarCraftHelperTool.jar"
@@ -45,6 +45,7 @@ Name: "quicklaunchicon"; Description: "{cm:CreateQuickLaunchIcon}"; GroupDescrip
 Source: "dist\WarCraftHelperTool.jar"; DestDir: "{app}"; Flags: ignoreversion
 Source: "dist\lib\*"; DestDir: "{app}/lib"; Flags: ignoreversion recursesubdirs createallsubdirs
 Source: "{#JDK}\*";  DestDir: "{app}\{#JDK}"; Flags: recursesubdirs createallsubdirs
+Source: "src\at\redeye\WarCraftHelperTool\ext_resources\list_monitor_resolutions.exe"; DestDir: "{app}"; Flags: ignoreversion
 
 ;Source: "C:\java\jnetpcap\x64\jnetpcap.dll"; DestDir: "{app}"; Flags: ignoreversion
 ; NOTE: Don't use "Flags: ignoreversion" on any shared system files
