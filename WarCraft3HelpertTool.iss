@@ -51,9 +51,9 @@ Source: "src\at\redeye\WarCraftHelperTool\ext_resources\list_monitor_resolutions
 ; NOTE: Don't use "Flags: ignoreversion" on any shared system files
 
 [Icons]
-Name: "{group}\{#MyAppName}"; Filename: "{#JAVA}"; WorkingDir: "{userappdata}"; Parameters: "-Xmx1024m -Djna.library.path=C:\Windows\System32\Npcap -jar ""{app}\{#MyAppExeName}""";
-Name: "{commondesktop}\{#MyAppName}"; Filename: "{#JAVA}"; WorkingDir: "{userappdata}"; Parameters: "-Xmx1024m  -Djna.library.path=C:\Windows\System32\Npcap -jar ""{app}\{#MyAppExeName}"" -Djna.library.path=C:\Windows\System32\Npcap"; Tasks: desktopicon
-Name: "{userappdata}\Microsoft\Internet Explorer\Quick Launch\{#MyAppName}"; Filename: "{#JAVA}"; WorkingDir: "{userappdata}"; Parameters: "-Xmx1024m  -Djna.library.path=C:\Windows\System32\Npcap -jar ""{app}\{#MyAppExeName}"" -Djna.library.path=C:\Windows\System32\Npcap"; Tasks: quicklaunchicon
+Name: "{group}\{#MyAppName}"; Filename: "{#JAVA}"; WorkingDir: "{app}"; Parameters: "-Xmx1024m -Djna.library.path=C:\Windows\System32\Npcap -jar ""{app}\{#MyAppExeName}""";
+Name: "{commondesktop}\{#MyAppName}"; Filename: "{#JAVA}"; WorkingDir: "{app}"; Parameters: "-Xmx1024m  -Djna.library.path=C:\Windows\System32\Npcap -jar ""{app}\{#MyAppExeName}"" -Djna.library.path=C:\Windows\System32\Npcap"; Tasks: desktopicon
+Name: "{userappdata}\Microsoft\Internet Explorer\Quick Launch\{#MyAppName}"; Filename: "{#JAVA}"; WorkingDir: "{app}"; Parameters: "-Xmx1024m  -Djna.library.path=C:\Windows\System32\Npcap -jar ""{app}\{#MyAppExeName}"" -Djna.library.path=C:\Windows\System32\Npcap"; Tasks: quicklaunchicon
 
 
 
